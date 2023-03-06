@@ -68,6 +68,11 @@ const createTextBlock = (data = {}) => {
     ...baseBlock(),
     type: "text",
     text: "",
+    fontSize: 14,
+    fontWeight: "normal",
+    fontStyle: "normal",
+    textDecoration: "normal",
+    color: "#000000",
     isEdit: false,
     ...data,
   };
@@ -197,12 +202,12 @@ const move = (state, callback = {}) => {
       callback.onMove();
     }
   };
-  const stop = () => {
+  const stop = (e) => {
     if (!startState.isMoving) return;
     startState.isMoving = false;
     clearGuidelines();
     if (callback.onStop) {
-      callback.onStop();
+      callback.onStop(e);
     }
   };
 

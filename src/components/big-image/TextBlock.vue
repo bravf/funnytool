@@ -1,6 +1,6 @@
 <script>
 import base from "./base";
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 export default {
   props: {
     data: {
@@ -14,9 +14,12 @@ export default {
       onStop: () => {},
     });
     const getSize = () => {
-      const rect = input.value.getBoundingClientRect();
-      props.data.width = parseInt(rect.width);
-      props.data.height = parseInt(rect.height);
+      const f = () => {
+        const rect = input.value.getBoundingClientRect();
+        props.data.width = parseInt(rect.width);
+        props.data.height = parseInt(rect.height);
+      };
+      setTimeout(f);
     };
     const onDblclick = () => {
       props.data.isEdit = true;
@@ -32,6 +35,8 @@ export default {
       if (props.data.isEdit) return;
       move.start(e);
     };
+    watch(() => props.data.fontSize, getSize);
+    watch(() => props.data.fontWeight, getSize);
     base.bus.on("block-start-move", (args) => {
       if (args.id === props.data.id) {
         move.start(args.e);
@@ -58,14 +63,14 @@ export default {
     placeholder="键入文字",
     spellcheck="false",
     @blur="onBlur",
-    @keydown.stop="() => {}"
-  ) {{ data.text }}
+    @keydown.stop="() => {}",
+    :innerText="data.text"
+  )
   slot
 </template>
 
 <style lang="scss" scoped>
 .block-content {
-  line-height: 26px;
   outline: none;
   &:empty::before {
     content: attr(placeholder);

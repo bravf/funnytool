@@ -31,14 +31,15 @@ export default {
   right: 0;
   left: 0;
   pointer-events: none;
-  outline: 1px solid rgb(22, 132, 252);
+  outline: 1px solid #5bbe6a;
   .resize {
     position: absolute;
-    width: 9px;
-    height: 9px;
-    bottom: -4px;
-    right: -4px;
-    background: rgb(22, 132, 252);
+    width: 15px;
+    height: 15px;
+    bottom: -7px;
+    right: -7px;
+    border-radius: 100%;
+    background: #5bbe6a;
     cursor: se-resize;
     opacity: 0.6;
     pointer-events: fill;

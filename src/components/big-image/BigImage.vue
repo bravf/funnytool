@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from "vue";
 import LeftBar from "./LeftBar.vue";
+import SettingBar from "./SettingBar.vue";
 import TextBlock from "./TextBlock.vue";
 import ImageBlock from "./ImageBlock.vue";
 import Active from "./Active.vue";
@@ -24,6 +25,7 @@ const onMousedown = (block) => {
   block.zIndex = base.state.zIndex++;
 };
 const handleDataItem = (item) => {
+  console.log(item);
   if (item.kind === "string" && item.type === "text/plain") {
     item.getAsString((text) =>
       base.createTextBlock({
@@ -31,7 +33,7 @@ const handleDataItem = (item) => {
         ...base.state.mousePosition,
       })
     );
-  } else if (item.kind === "file" && item.type === "image/png") {
+  } else if (item.kind === "file" && item.type.includes("image/")) {
     base.getImagePropsByFile(item.getAsFile()).then((data) => {
       base.createImageBlock({
         ...data,
@@ -81,7 +83,7 @@ window.addEventListener("keydown", (e) => {
         v-if="block.type === 'text'",
         :data="block",
         :key="block.id",
-        :style="{ top: block.top + 'px', left: block.left + 'px', 'z-index': block.zIndex }"
+        :style="{ top: block.top + 'px', left: block.left + 'px', 'z-index': block.zIndex, 'font-size': block.fontSize + 'px', color: block.color, 'font-weight': block.fontWeight }"
       )
         Active(:data="block")
       ImageBlock(
@@ -93,12 +95,13 @@ window.addEventListener("keydown", (e) => {
         Active(:data="block")
 
   LeftBar
+  SettingBar
   Guideline(:data="base.state.guidelines")
   n-button.screen-shot(
     strong,
     secondary,
     round,
-    type="info",
+    type="primary",
     size="large",
     @click="createBigImage",
     v-if="base.state.blocks.length && !base.state.bigImage.show"

@@ -1,0 +1,32 @@
+{
+  "name": "funnytool",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "canvas2image": "^1.0.5",
+    "dom-to-image": "^2.6.0",
+    "html2canvas": "^1.4.1",
+    "mitt": "^3.0.0",
+    "vue": "^3.2.45"
+  },
+  "devDependencies": {
+    "@vicons/carbon": "^0.12.0",
+    "@vicons/utils": "^0.1.4",
+    "@vitejs/plugin-vue": "^4.0.0",
+    "naive-ui": "^2.34.3",
+    "node-sass": "^8.0.0",
+    "pug": "^3.0.2",
+    "pug-html-loader": "^1.1.5",
+    "pug-plain-loader": "^1.1.0",
+    "sass": "^1.58.3",
+    "sass-loader": "^13.2.0",
+    "vfonts": "^0.0.3",
+    "vite": "^4.1.0"
+  }
+}

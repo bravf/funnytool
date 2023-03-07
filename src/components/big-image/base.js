@@ -20,6 +20,14 @@ const gState = reactive({
     width: "",
     height: "",
   },
+  tempGroupBlock: {
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    blocks: [],
+    type: "tempGroup",
+  },
 });
 
 // 获取鼠标位置
@@ -61,6 +69,11 @@ const baseBlock = () => ({
   left: 0,
   width: 0,
   height: 0,
+  // 临时变量
+  _top: 0,
+  _left: 0,
+  _width: 0,
+  _height: 0,
   zIndex: gState.zIndex++,
 });
 const createTextBlock = (data = {}) => {
@@ -111,24 +124,45 @@ const clearGuidelines = () => {
 };
 
 // 移动 block
-const move = (state, callback = {}) => {
+const move = (_state, callback = {}) => {
+  let state = _state;
+  let backupState = _state;
   const startState = {
     left: 0,
     top: 0,
     isMoving: false,
   };
-  const backupState = {};
 
   // 参考线
   let lines;
 
   const start = (e) => {
-    backupState.left = state.left;
-    backupState.top = state.top;
+    // 判断临时组，如果是临时组的成员，则state升级为临时组
+    if (
+      gState.activeBlock &&
+      gState.activeBlock.type === "tempGroup" &&
+      gState.activeBlock.blocks.includes(_state)
+    ) {
+      state = gState.tempGroupBlock;
+    } else {
+      state = backupState;
+    }
+
+    state._left = state.left;
+    state._top = state.top;
+
+    // 如果是 group
+    if (state.blocks) {
+      state.blocks.forEach((block) => {
+        block._left = block.left;
+        block._top = block.top;
+      });
+    }
+
     startState.left = e.clientX;
     startState.top = e.clientY;
     startState.isMoving = true;
-    lines = getGuidelines([state]);
+    lines = getGuidelines([state, ...(state.blocks || [])]);
     if (callback.onStart) {
       callback.onStart();
     }
@@ -143,24 +177,21 @@ const move = (state, callback = {}) => {
     (() => {
       // left 吸附
       // 左线
-      const left = adsorb(backupState.left + diffx, lines.left);
+      const left = adsorb(state._left + diffx, lines.left);
       if (left.is) {
         state.left = left.line;
         gState.guidelines.left.push(left.line);
         return;
       }
       // 中线
-      const middle = adsorb(
-        backupState.left + diffx + state.width / 2,
-        lines.left
-      );
+      const middle = adsorb(state._left + diffx + state.width / 2, lines.left);
       if (middle.is) {
         state.left = middle.line - state.width / 2;
         gState.guidelines.left.push(middle.line);
         return;
       }
       // 右线
-      const right = adsorb(backupState.left + diffx + state.width, lines.left);
+      const right = adsorb(start._left + diffx + state.width, lines.left);
       if (right.is) {
         state.left = right.line - state.width;
         gState.guidelines.left.push(right.line);
@@ -172,24 +203,21 @@ const move = (state, callback = {}) => {
     (() => {
       // top 吸附
       // 上线
-      const top = adsorb(backupState.top + diffy, lines.top);
+      const top = adsorb(state._top + diffy, lines.top);
       if (top.is) {
         state.top = top.line;
         gState.guidelines.top.push(top.line);
         return;
       }
       // 中线
-      const middle = adsorb(
-        backupState.top + diffy + state.height / 2,
-        lines.top
-      );
+      const middle = adsorb(state._top + diffy + state.height / 2, lines.top);
       if (middle.is) {
         state.top = middle.line - state.height / 2;
         gState.guidelines.top.push(middle.line);
         return;
       }
       // 下线
-      const bottom = adsorb(backupState.top + diffy + state.height, lines.top);
+      const bottom = adsorb(state._top + diffy + state.height, lines.top);
       if (bottom.is) {
         state.top = bottom.line - state.height;
         gState.guidelines.top.push(bottom.line);
@@ -197,6 +225,15 @@ const move = (state, callback = {}) => {
       }
       state.top = top.line;
     })();
+
+    if (state.blocks) {
+      const realDiffx = state.left - state._left;
+      const realDiffy = state.top - state._top;
+      state.blocks.forEach((block) => {
+        block.left = block._left + realDiffx;
+        block.top = block._top + realDiffy;
+      });
+    }
 
     if (callback.onMove) {
       callback.onMove();
@@ -223,23 +260,21 @@ const resize = (state, callback = {}) => {
     left: 0,
     isMoving: false,
   };
-  const backupState = {};
-
   const setWidth = (width) => {
     state.width = width;
-    state.height = parseInt((backupState.height / backupState.width) * width);
+    state.height = parseInt((state._height / state._width) * width);
   };
   const setHeight = (height) => {
     state.height = height;
-    state.width = parseInt((backupState.width / backupState.height) * height);
+    state.width = parseInt((state._width / state._height) * height);
   };
 
   // 参考线
   let lines;
 
   const start = (e) => {
-    backupState.width = state.width;
-    backupState.height = state.height;
+    state._width = state.width;
+    state._height = state.height;
     startState.left = e.clientX;
     startState.isMoving = true;
     lines = getGuidelines([state]);
@@ -256,7 +291,7 @@ const resize = (state, callback = {}) => {
     (() => {
       // left 吸附
       // 右线
-      const right = adsorb(state.left + backupState.width + diffx, lines.left);
+      const right = adsorb(state.left + state._width + diffx, lines.left);
       if (right.is) {
         setWidth(right.line - state.left);
         gState.guidelines.left.push(right.line);
@@ -264,7 +299,7 @@ const resize = (state, callback = {}) => {
       }
       // 中线
       const middle = adsorb(
-        state.left + (backupState.width + diffx) / 2,
+        state.left + (state._width + diffx) / 2,
         lines.left
       );
       if (middle.is) {
@@ -302,7 +337,7 @@ const resize = (state, callback = {}) => {
     startState.isMoving = false;
     clearGuidelines();
     if (callback.onStop) {
-      callback.onStop(e);
+      callback.onStop();
     }
   };
 
@@ -427,6 +462,32 @@ const insertContenteditable = (el, content) => {
   // selection.removeAllRanges();
 };
 
+const arrayRemoveItem = (array, item) => {
+  const index = array.indexOf(item);
+  if (index === -1) return;
+  array.splice(index, 1);
+};
+
+// 根据 group.blocks 更新 group的 rect 信息
+const updateGroupRect = (group) => {
+  let minLeft = 1000000;
+  let maxLeft = 0;
+  let minTop = 1000000;
+  let maxTop = 0;
+
+  group.blocks.forEach((block) => {
+    minLeft = Math.min(minLeft, block.left);
+    maxLeft = Math.max(maxLeft, block.left + block.width);
+    minTop = Math.min(minTop, block.top);
+    maxTop = Math.max(maxTop, block.top + block.height);
+  });
+
+  group.left = minLeft;
+  group.top = minTop;
+  group.width = maxLeft - minLeft;
+  group.height = maxTop - minTop;
+};
+
 export default {
   state: gState,
   bus,
@@ -443,4 +504,6 @@ export default {
   deleteActiveBlock,
   selectAllText,
   insertContenteditable,
+  arrayRemoveItem,
+  updateGroupRect,
 };

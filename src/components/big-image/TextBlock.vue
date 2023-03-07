@@ -51,7 +51,6 @@ export default {
       [...e.clipboardData.items].forEach((item) => {
         if (item.kind === "string" && item.type === "text/plain") {
           item.getAsString((text) =>
-            // document.execCommand("insertHtml", false, text)
             base.insertContenteditable(input.value, text)
           );
         }
@@ -62,6 +61,7 @@ export default {
         move.start(args.e);
       }
     });
+    getSize();
     onDblclick();
     return {
       move,
@@ -94,6 +94,8 @@ export default {
 <style lang="scss" scoped>
 .block-content {
   outline: none;
+  height: 100%;
+  word-break: break-all;
   &:empty::before {
     content: attr(placeholder);
     color: #999;

@@ -24,20 +24,27 @@ export default {
 .active(
   :style="{ display: base.state.activeBlock === data ? 'block' : 'none' }"
 )
-  .resize(@mousedown.stop="resize.start", v-if="data.type != 'text'")
+  .resize.resize-left-bottom(
+    @mousedown.stop="resize.start",
+    v-if="data.type === 'image'"
+  )
 </template>
 <style lang="scss" scoped>
 .active {
   display: none;
   position: absolute;
-  top: 2px;
-  bottom: 2px;
-  right: 2px;
-  left: 2px;
+  top: 1px;
+  bottom: 1px;
+  right: 1px;
+  left: 1px;
   pointer-events: none;
-  outline: 2px solid #5bbe6a;
+  outline: 1px solid #5bbe6a;
+
   .resize {
     position: absolute;
+    pointer-events: fill;
+  }
+  .resize-left-bottom {
     width: 15px;
     height: 15px;
     bottom: -7px;
@@ -46,7 +53,6 @@ export default {
     background: #5bbe6a;
     cursor: se-resize;
     opacity: 0.6;
-    pointer-events: fill;
   }
 }
 </style>

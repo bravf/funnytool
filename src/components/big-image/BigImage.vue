@@ -6,13 +6,14 @@ import TextBlock from "./TextBlock.vue";
 import ImageBlock from "./ImageBlock.vue";
 import Active from "./Active.vue";
 import Guideline from "./Guideline.vue";
+import TempGroupBlock from "./TempGroupBlock.vue";
 import base from "./base";
 import { NButton, NModal, NAlert } from "naive-ui";
 
 const isBlocks = (e) => {
   return e.target.className === "blocks";
 };
-const onClick = (e) => {
+const blocksOnMousedown = (e) => {
   if (isBlocks(e)) {
     base.state.activeBlock = null;
   }
@@ -20,12 +21,42 @@ const onClick = (e) => {
 const onMousemove = (e) => {
   base.state.mousePosition = base.getMousePostion(e);
 };
-const onMousedown = (block) => {
-  base.state.activeBlock = block;
-  block.zIndex = base.state.zIndex++;
+const onMousedown = (block, e) => {
+  const isShift = e.shiftKey;
+  if (isShift && base.state.activeBlock && block !== base.state.activeBlock) {
+    // 建立新的临时组
+    if (base.state.activeBlock.type !== "tempGroup") {
+      base.state.tempGroupBlock.blocks = [base.state.activeBlock, block];
+    } else {
+      if (base.state.tempGroupBlock.blocks.includes(block)) {
+        console.log("remove");
+        base.arrayRemoveItem(base.state.tempGroupBlock.blocks, block);
+      } else {
+        base.state.tempGroupBlock.blocks.push(block);
+      }
+    }
+
+    base.state.activeBlock =
+      base.state.tempGroupBlock.blocks.length > 1
+        ? base.state.tempGroupBlock
+        : base.state.tempGroupBlock.blocks[0];
+
+    base.updateGroupRect(base.state.tempGroupBlock);
+  } else {
+    // 如果点击的 block 在临时组中，则忽略
+    if (
+      base.state.activeBlock &&
+      base.state.activeBlock.type === "tempGroup" &&
+      base.state.tempGroupBlock.blocks.includes(block)
+    ) {
+    } else {
+      base.state.activeBlock = block;
+    }
+  }
+
+  base.state.activeBlock.zIndex = base.state.zIndex++;
 };
 const handleDataItem = (item) => {
-  console.log(item);
   if (item.kind === "string" && item.type === "text/plain") {
     item.getAsString((text) =>
       base.createTextBlock({
@@ -70,14 +101,14 @@ window.addEventListener("keydown", (e) => {
 <template lang="pug">
 .stage
   .blocks(
-    @click="onClick",
+    @mousedown="blocksOnMousedown",
     @mousemove="onMousemove",
     @dragover.prevent="() => {}",
     @drop.prevent="onDrop"
   )
     .block-box(
       v-for="block in base.state.blocks",
-      @mousedown="onMousedown(block)"
+      @mousedown="onMousedown(block, $event)"
     )
       TextBlock(
         v-if="block.type === 'text'",
@@ -93,6 +124,12 @@ window.addEventListener("keydown", (e) => {
         :style="{ top: block.top + 'px', left: block.left + 'px', width: block.width + 'px', height: block.height + 'px', 'z-index': block.zIndex }"
       )
         Active(:data="block")
+
+    tempGroupBlock(
+      v-if="base.state.activeBlock === base.state.tempGroupBlock",
+      :style="{ top: base.state.tempGroupBlock.top + 'px', left: base.state.tempGroupBlock.left + 'px', width: base.state.tempGroupBlock.width + 'px', height: base.state.tempGroupBlock.height + 'px', 'z-index': base.state.tempGroupBlock.zIndex }"
+    )
+      Active(:data="base.state.tempGroupBlock")
 
   LeftBar
   SettingBar
@@ -133,6 +170,11 @@ window.addEventListener("keydown", (e) => {
       .active {
         display: block !important;
       }
+    }
+  }
+  .temp-group-block {
+    .active {
+      display: block !important;
     }
   }
 }

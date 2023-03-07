@@ -1,6 +1,6 @@
 <script>
 import base from "./base";
-import { onMounted, ref, watch } from "vue";
+import { ref, watch } from "vue";
 export default {
   props: {
     data: {
@@ -37,6 +37,26 @@ export default {
     };
     watch(() => props.data.fontSize, getSize);
     watch(() => props.data.fontWeight, getSize);
+    watch(() => props.data.fontStyle, getSize);
+    watch(
+      () => props.data.isEdit,
+      () => {
+        if (!props.data.isEdit) return;
+        setTimeout(() => {
+          base.selectAllText(input.value);
+        });
+      }
+    );
+    const onPaste = (e) => {
+      [...e.clipboardData.items].forEach((item) => {
+        if (item.kind === "string" && item.type === "text/plain") {
+          item.getAsString((text) =>
+            // document.execCommand("insertHtml", false, text)
+            base.insertContenteditable(input.value, text)
+          );
+        }
+      });
+    };
     base.bus.on("block-start-move", (args) => {
       if (args.id === props.data.id) {
         move.start(args.e);
@@ -50,6 +70,7 @@ export default {
       onDblclick,
       onBlur,
       onMousedown,
+      onPaste,
     };
   },
 };
@@ -64,6 +85,7 @@ export default {
     spellcheck="false",
     @blur="onBlur",
     @keydown.stop="() => {}",
+    @paste.prevent="onPaste",
     :innerText="data.text"
   )
   slot

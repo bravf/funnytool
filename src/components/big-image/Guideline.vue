@@ -13,7 +13,7 @@ export default {
 <style lang="scss" scoped>
 .line {
   position: absolute;
-  background: red;
+  background: #e75f5a;
   z-index: 100000;
 }
 .left-line {

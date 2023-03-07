@@ -83,7 +83,7 @@ window.addEventListener("keydown", (e) => {
         v-if="block.type === 'text'",
         :data="block",
         :key="block.id",
-        :style="{ top: block.top + 'px', left: block.left + 'px', 'z-index': block.zIndex, 'font-size': block.fontSize + 'px', color: block.color, 'font-weight': block.fontWeight }"
+        :style="{ top: block.top + 'px', left: block.left + 'px', 'z-index': block.zIndex, 'font-size': block.fontSize + 'px', color: block.color, 'font-weight': block.fontWeight, 'font-style': block.fontStyle, 'text-decoration': block.textDecoration }"
       )
         Active(:data="block")
       ImageBlock(

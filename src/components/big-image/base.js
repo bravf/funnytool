@@ -68,7 +68,7 @@ const createTextBlock = (data = {}) => {
     ...baseBlock(),
     type: "text",
     text: "",
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: "normal",
     fontStyle: "normal",
     textDecoration: "normal",
@@ -218,7 +218,7 @@ const move = (state, callback = {}) => {
 };
 
 // 缩放 block
-const resize = (state) => {
+const resize = (state, callback = {}) => {
   const startState = {
     left: 0,
     isMoving: false,
@@ -243,6 +243,9 @@ const resize = (state) => {
     startState.left = e.clientX;
     startState.isMoving = true;
     lines = getGuidelines([state]);
+    if (callback.onStart) {
+      callback.onStart();
+    }
   };
   const move = (e) => {
     if (!startState.isMoving) return;
@@ -290,11 +293,17 @@ const resize = (state) => {
         }
       })();
     })();
+    if (callback.onMove) {
+      callback.onMove();
+    }
   };
   const stop = () => {
     if (!startState.isMoving) return;
     startState.isMoving = false;
     clearGuidelines();
+    if (callback.onStop) {
+      callback.onStop(e);
+    }
   };
 
   window.addEventListener("mousemove", move);
@@ -338,6 +347,20 @@ const adsorb = (line, lines, offset = 5) => {
   return state;
 };
 
+// 选中文本
+const selectAllText = (el) => {
+  if (document.selection) {
+    var range = document.body.createTextRange();
+    range.moveToElementText(el);
+    range.select();
+  } else if (window.getSelection) {
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+  }
+};
+
 // 生成一个 image 元素
 const createImage = (data, callback) => {
   const img = new Image();
@@ -351,7 +374,7 @@ const createImage = (data, callback) => {
 const devicePixelRatio = window.devicePixelRatio;
 const createBigImage = () => {
   gState.activeBlock = null;
-  const offset = 10;
+  const offset = 0;
   const lines = getGuidelines();
   const minLeft = Math.min(...lines.left) - offset;
   const maxLeft = Math.max(...lines.left) + offset;
@@ -386,6 +409,24 @@ const createBigImage = () => {
   });
 };
 
+const insertContenteditable = (el, content) => {
+  // 获取当前选区对象和 Range 对象
+  const selection = window.getSelection();
+  const range = selection.getRangeAt(0);
+
+  // 创建新的文本节点
+  const newTextNode = document.createTextNode(content);
+
+  // 插入文本节点
+  range.insertNode(newTextNode);
+
+  // 移动光标位置
+  range.setStartAfter(newTextNode);
+
+  // 清除选区
+  // selection.removeAllRanges();
+};
+
 export default {
   state: gState,
   bus,
@@ -400,4 +441,6 @@ export default {
   createBigImage,
   devicePixelRatio,
   deleteActiveBlock,
+  selectAllText,
+  insertContenteditable,
 };

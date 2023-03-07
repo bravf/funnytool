@@ -8,7 +8,11 @@ export default {
     },
   },
   setup(props) {
-    const resize = base.resize(props.data);
+    const resize = base.resize(props.data, {
+      onStart: () => {
+        base.state.activeBlock = props.data;
+      },
+    });
     return {
       base,
       resize,
@@ -26,12 +30,12 @@ export default {
 .active {
   display: none;
   position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  left: 0;
+  top: 2px;
+  bottom: 2px;
+  right: 2px;
+  left: 2px;
   pointer-events: none;
-  outline: 1px solid #5bbe6a;
+  outline: 2px solid #5bbe6a;
   .resize {
     position: absolute;
     width: 15px;

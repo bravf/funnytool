@@ -27,6 +27,22 @@ const textBoldClick = () => {
   base.state.activeBlock.fontWeight =
     base.state.activeBlock.fontWeight === "normal" ? "bold" : "normal";
 };
+const textItalicClick = () => {
+  base.state.activeBlock.fontStyle =
+    base.state.activeBlock.fontStyle === "normal" ? "italic" : "normal";
+};
+const textUnderlineClick = () => {
+  base.state.activeBlock.textDecoration =
+    base.state.activeBlock.textDecoration !== "underline"
+      ? "underline"
+      : "none";
+};
+const textStrikethroughClick = () => {
+  base.state.activeBlock.textDecoration =
+    base.state.activeBlock.textDecoration !== "line-through"
+      ? "line-through"
+      : "none";
+};
 </script>
 <template lang="pug">
 .setting-bar(v-if="base.state.activeBlock")
@@ -55,6 +71,7 @@ const textBoldClick = () => {
 <style lang="scss" scoped>
 .setting-bar {
   position: fixed;
+  z-index: 10000000;
   width: 160px;
   top: 100px;
   right: 20px;

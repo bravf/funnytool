@@ -1,5 +1,5 @@
 <script setup>
-import ImageAndText from "./components/image-and-text/main.vue";
+import ImageAndText from "./components/image-and-text/Main.vue";
 </script>
 
 <template>

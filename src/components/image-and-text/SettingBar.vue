@@ -42,7 +42,9 @@ const textStrikethroughClick = () => {
 };
 </script>
 <template lang="pug">
-.setting-bar(v-if="base.state.activeBlock")
+.setting-bar(
+  v-if="base.state.activeBlock && base.state.activeBlock.type !== 'image'"
+)
   //- text
   template(v-if="base.state.activeBlock.type === 'text'")
     .color-list.list

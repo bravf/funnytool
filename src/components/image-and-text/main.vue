@@ -85,7 +85,7 @@ window.addEventListener("keydown", (e) => {
   }
 
   // 全选block
-  if (key === "a" && e.metaKey) {
+  if (key === "a" && (e.metaKey || e.ctrlKey)) {
     base.selectBlocks(base.state.blocks);
     return;
   }
@@ -113,7 +113,8 @@ const inTempGroup = (block) => {
   )
     .block-box(
       v-for="block in base.state.blocks",
-      :class="{ 'block-active': block === base.state.activeBlock, 'in-temp-group': inTempGroup(block) }"
+      :class="{ 'block-active': block === base.state.activeBlock, 'in-temp-group': inTempGroup(block) }",
+      :key="'box' + block.id"
     )
       TextBlock(
         v-if="block.type === 'text'",

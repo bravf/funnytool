@@ -118,9 +118,11 @@ const createImageBlock = (data = {}) => {
 
 const deleteActiveBlock = () => {
   if (!gState.activeBlock) return;
-  const index = gState.blocks.indexOf(gState.activeBlock);
-  gState.blocks.splice(index, 1);
-  return gState.activeBlock;
+
+  getBlocks(gState.activeBlock).forEach((block) => {
+    arrayRemoveItem(gState.blocks, block);
+  });
+  gState.activeBlock = null;
 };
 
 // 事件总线

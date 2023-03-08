@@ -21,57 +21,26 @@ const blocksOnMousedown = (e) => {
 const onMousemove = (e) => {
   base.state.mousePosition = base.getMousePostion(e);
 };
-const onMousedown = (block, e) => {
-  const isShift = e.shiftKey;
-  if (isShift && base.state.activeBlock && block !== base.state.activeBlock) {
-    // 建立新的临时组
-    if (base.state.activeBlock.type !== "tempGroup") {
-      base.state.tempGroupBlock.scale = 1;
-      base.state.tempGroupBlock.blocks = [base.state.activeBlock, block];
-    } else {
-      if (base.state.tempGroupBlock.blocks.includes(block)) {
-        console.log("remove");
-        base.arrayRemoveItem(base.state.tempGroupBlock.blocks, block);
-      } else {
-        base.state.tempGroupBlock.blocks.push(block);
-      }
-    }
-
-    base.state.activeBlock =
-      base.state.tempGroupBlock.blocks.length > 1
-        ? base.state.tempGroupBlock
-        : base.state.tempGroupBlock.blocks[0];
-
-    base.updateGroupRect(base.state.tempGroupBlock);
-  } else {
-    // 如果点击的 block 在临时组中，则忽略
-    if (
-      base.state.activeBlock &&
-      base.state.activeBlock.type === "tempGroup" &&
-      base.state.tempGroupBlock.blocks.includes(block)
-    ) {
-    } else {
-      base.state.activeBlock = block;
-    }
-  }
-  base.updateActiveBlockZIndex();
-};
 const handleDataItem = (item) => {
-  if (item.kind === "string" && item.type === "text/plain") {
-    item.getAsString((text) =>
-      base.createTextBlock({
-        text,
-        ...base.state.mousePosition,
-      })
-    );
-  } else if (item.kind === "file" && item.type.includes("image/")) {
-    base.getImagePropsByFile(item.getAsFile()).then((data) => {
-      base.createImageBlock({
-        ...data,
-        ...base.state.mousePosition,
+  return new Promise((resolve) => {
+    if (item.kind === "string" && item.type === "text/plain") {
+      item.getAsString((text) => {
+        const block = base.createTextBlock({
+          text,
+          ...base.state.mousePosition,
+        });
+        resolve(block);
       });
-    });
-  }
+    } else if (item.kind === "file" && item.type.includes("image/")) {
+      base.getImagePropsByFile(item.getAsFile()).then((data) => {
+        const block = base.createImageBlock({
+          ...data,
+          ...base.state.mousePosition,
+        });
+        resolve(block);
+      });
+    }
+  });
 };
 const onPaste = (e) => {
   if (
@@ -80,11 +49,27 @@ const onPaste = (e) => {
     base.state.activeBlock.isEdit
   )
     return;
-  [...e.clipboardData.items].forEach((item) => handleDataItem(item));
+
+  handleDataItems(e.clipboardData.items);
 };
 const onDrop = (e) => {
-  [...e.dataTransfer.items].forEach((item) => handleDataItem(item));
+  handleDataItems(e.dataTransfer.items);
 };
+const handleDataItems = (items) => {
+  const blocks = [];
+  const blockDefers = [];
+  [...items].forEach((item) => {
+    blockDefers.push(
+      handleDataItem(item).then((block) => {
+        blocks.push(block);
+      })
+    );
+  });
+  Promise.all(blockDefers).then(() => {
+    base.selectBlocks(blocks);
+  });
+};
+
 const createBigImage = () => {
   base.state.activeBlock = null;
   setTimeout(base.createBigImage);
@@ -92,8 +77,17 @@ const createBigImage = () => {
 window.addEventListener("paste", onPaste);
 window.addEventListener("keydown", (e) => {
   const key = e.key;
+
+  // 删除block
   if (key === "Backspace") {
     base.deleteActiveBlock();
+    return;
+  }
+
+  // 全选block
+  if (key === "a" && e.metaKey) {
+    base.selectBlocks(base.state.blocks);
+    return;
   }
 });
 
@@ -119,7 +113,6 @@ const inTempGroup = (block) => {
   )
     .block-box(
       v-for="block in base.state.blocks",
-      @mousedown="onMousedown(block, $event)",
       :class="{ 'block-active': block === base.state.activeBlock, 'in-temp-group': inTempGroup(block) }"
     )
       TextBlock(
@@ -188,7 +181,7 @@ const inTempGroup = (block) => {
       left: 0;
       bottom: 0;
       right: 0;
-      background: rgb(91, 190, 106, 0.1);
+      background: rgb(91, 190, 106, 0.4);
     }
     &:hover {
       .block-hover {
@@ -221,6 +214,7 @@ const inTempGroup = (block) => {
 .big-image {
   padding: 20px;
   background: #fff;
+  user-select: none;
   img {
     margin-top: 10px;
     min-width: 400px;

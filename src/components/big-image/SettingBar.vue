@@ -5,16 +5,13 @@ import TextBold from "@vicons/carbon/TextBold";
 import TextItalic from "@vicons/carbon/TextItalic";
 import TextUnderline from "@vicons/carbon/TextUnderline";
 import TextStrikethrough from "@vicons/carbon/TextStrikethrough";
+import AlignHorizontalLeft from "@vicons/carbon/AlignHorizontalLeft";
+import AlignHorizontalRight from "@vicons/carbon/AlignHorizontalRight";
+import AlignHorizontalCenter from "@vicons/carbon/AlignHorizontalCenter";
+import AlignVerticalTop from "@vicons/carbon/AlignVerticalTop";
+import AlignVerticalBottom from "@vicons/carbon/AlignVerticalBottom";
+import AlignVerticalCenter from "@vicons/carbon/AlignVerticalCenter";
 import { Icon } from "@vicons/utils";
-import { NSelect } from "naive-ui";
-
-const state = reactive({
-  fontSize: 14,
-});
-const fontSizeList = [12, 13, 14, 16, 18, 20, 28, 36, 48, 72].map((item) => ({
-  label: item,
-  value: item,
-}));
 const colorList = [
   "#000000",
   "#e75f5a",
@@ -46,11 +43,8 @@ const textStrikethroughClick = () => {
 </script>
 <template lang="pug">
 .setting-bar(v-if="base.state.activeBlock")
+  //- text
   template(v-if="base.state.activeBlock.type === 'text'")
-    NSelect(
-      v-model:value="base.state.activeBlock.fontSize",
-      :options="fontSizeList"
-    )
     .color-list.list
       .color(
         v-for="color in colorList",
@@ -67,12 +61,28 @@ const textStrikethroughClick = () => {
         TextUnderline
       Icon(@click="textStrikethroughClick")
         TextStrikethrough
+
+  //- temp-group
+  template(v-if="base.state.activeBlock.type === 'tempGroup'")
+    .format-list.list
+      Icon(@click="base.alignVerticalTop")
+        AlignVerticalTop
+      Icon(@click="base.alignHorizontalCenter")
+        AlignVerticalCenter
+      Icon(@click="base.alignVerticalBottom")
+        AlignVerticalBottom
+      Icon(@click="base.alignHorizontalLeft")
+        AlignHorizontalLeft
+      Icon(@click="base.alignVerticalCenter")
+        AlignHorizontalCenter
+      Icon(@click="base.alignHorizontalRight")
+        AlignHorizontalRight
 </template>
 <style lang="scss" scoped>
 .setting-bar {
   position: fixed;
   z-index: 10000000;
-  width: 160px;
+  width: 200px;
   top: 100px;
   right: 20px;
   padding: 10px;

@@ -148,6 +148,9 @@ const move = (_state, callback = {}) => {
   let size;
 
   const start = (e) => {
+    if (callback.onStart) {
+      callback.onStart();
+    }
     // 判断临时组，如果是临时组的成员，则state升级为临时组
     if (
       gState.activeBlock &&
@@ -168,9 +171,6 @@ const move = (_state, callback = {}) => {
     startState.top = e.clientY;
     startState.isMoving = true;
     lines = getGuidelines(getBlocks(state));
-    if (callback.onStart) {
-      callback.onStart();
-    }
   };
   const move = (e) => {
     if (!startState.isMoving) return;
@@ -362,6 +362,10 @@ const resize = (callback = {}) => {
     if (!startState.isMoving) return;
     startState.isMoving = false;
     clearGuidelines();
+    // 如果是组，重置size
+    if (state.type === "tempGroup") {
+      updateGroupRect(state);
+    }
     if (callback.onStop) {
       callback.onStop();
     }
@@ -374,10 +378,10 @@ const resize = (callback = {}) => {
 };
 
 // 获取辅助线
-const getGuidelines = (except = []) => {
+const getGuidelines = (except = [], blocks = gState.blocks) => {
   const xSet = new Set();
   const ySet = new Set();
-  gState.blocks.forEach((block) => {
+  blocks.forEach((block) => {
     if (except.includes(block)) return;
     const size = getRealSize(block);
     xSet.add(block.left);
@@ -513,6 +517,7 @@ const updateGroupRect = (group) => {
   group.top = minTop;
   group.width = maxLeft - minLeft;
   group.height = maxTop - minTop;
+  group.scale = 1;
 };
 
 // 根据scale得到真实size
@@ -544,6 +549,161 @@ const updateActiveBlockZIndex = () => {
   });
 };
 
+// 处理选中block逻辑
+const updateActiveBlock = (block, e) => {
+  const isShift = e.shiftKey;
+  if (isShift && gState.activeBlock && block !== gState.activeBlock) {
+    // 建立新的临时组
+    if (gState.activeBlock.type !== "tempGroup") {
+      gState.tempGroupBlock.scale = 1;
+      gState.tempGroupBlock.blocks = [gState.activeBlock, block];
+    } else {
+      if (gState.tempGroupBlock.blocks.includes(block)) {
+        arrayRemoveItem(gState.tempGroupBlock.blocks, block);
+      } else {
+        gState.tempGroupBlock.blocks.push(block);
+      }
+    }
+
+    gState.activeBlock =
+      gState.tempGroupBlock.blocks.length > 1
+        ? gState.tempGroupBlock
+        : gState.tempGroupBlock.blocks[0];
+
+    updateGroupRect(gState.tempGroupBlock);
+  } else {
+    // 如果点击的 block 在临时组中，则忽略
+    if (
+      gState.activeBlock &&
+      gState.activeBlock.type === "tempGroup" &&
+      gState.tempGroupBlock.blocks.includes(block)
+    ) {
+    } else {
+      gState.activeBlock = block;
+    }
+  }
+  updateActiveBlockZIndex();
+};
+
+// 选中一组 blocks
+const selectBlocks = (blocks) => {
+  if (!blocks.length) return;
+  if (blocks.length === 1) {
+    gState.activeBlock = blocks[0];
+    return;
+  }
+  gState.tempGroupBlock.scale = 1;
+  gState.tempGroupBlock.zIndex = gState.zIndex++;
+  gState.tempGroupBlock.blocks = [...blocks];
+  gState.activeBlock = gState.tempGroupBlock;
+  updateGroupRect(gState.tempGroupBlock);
+};
+
+// 对齐排版
+const alignOffset = 20;
+const alignVerticalTop = () => {
+  const lines = getGuidelines([], gState.tempGroupBlock.blocks);
+  let left = Math.min(...lines.left);
+  let top = Math.min(...lines.top);
+
+  gState.tempGroupBlock.blocks
+    .sort((a, b) => a.left - b.left)
+    .forEach((block, index) => {
+      const realSize = getRealSize(block);
+      block.left = left;
+      block.top = top;
+      left = left + alignOffset + realSize.width;
+    });
+
+  updateGroupRect(gState.tempGroupBlock);
+};
+const alignVerticalBottom = () => {
+  const lines = getGuidelines([], gState.tempGroupBlock.blocks);
+  let left = Math.min(...lines.left);
+  let bottom = Math.max(...lines.top);
+
+  gState.tempGroupBlock.blocks
+    .sort((a, b) => a.left - b.left)
+    .forEach((block, index) => {
+      const realSize = getRealSize(block);
+      block.left = left;
+      block.top = bottom - realSize.height;
+
+      left = left + alignOffset + realSize.width;
+    });
+
+  updateGroupRect(gState.tempGroupBlock);
+};
+const alignHorizontalCenter = () => {
+  const lines = getGuidelines([], gState.tempGroupBlock.blocks);
+  let left = Math.min(...lines.left);
+  let bottom = Math.max(...lines.top);
+
+  gState.tempGroupBlock.blocks
+    .sort((a, b) => a.left - b.left)
+    .forEach((block, index) => {
+      const realSize = getRealSize(block);
+      block.left = left;
+      block.top = (bottom - realSize.height) / 2;
+
+      left = left + alignOffset + realSize.width;
+    });
+
+  updateGroupRect(gState.tempGroupBlock);
+};
+
+const alignHorizontalLeft = () => {
+  const lines = getGuidelines([], gState.tempGroupBlock.blocks);
+  let left = Math.min(...lines.left);
+  let top = Math.min(...lines.top);
+
+  gState.tempGroupBlock.blocks
+    .sort((a, b) => a.top - b.top)
+    .forEach((block, index) => {
+      const realSize = getRealSize(block);
+      block.left = left;
+      block.top = top;
+
+      top = top + alignOffset + realSize.height;
+    });
+
+  updateGroupRect(gState.tempGroupBlock);
+};
+const alignHorizontalRight = () => {
+  const lines = getGuidelines([], gState.tempGroupBlock.blocks);
+  let right = Math.max(...lines.left);
+  let top = Math.min(...lines.top);
+
+  gState.tempGroupBlock.blocks
+    .sort((a, b) => a.top - b.top)
+    .forEach((block, index) => {
+      const realSize = getRealSize(block);
+      block.left = right - realSize.width;
+      block.top = top;
+
+      top = top + alignOffset + realSize.height;
+    });
+
+  updateGroupRect(gState.tempGroupBlock);
+};
+const alignVerticalCenter = () => {
+  const lines = getGuidelines([], gState.tempGroupBlock.blocks);
+  let right = Math.max(...lines.left);
+  let top = Math.min(...lines.top);
+
+  gState.tempGroupBlock.blocks
+    .sort((a, b) => a.top - b.top)
+    .forEach((block, index) => {
+      const realSize = getRealSize(block);
+      block.left = (right - realSize.width) / 2;
+      block.top = top;
+
+      top = top + alignOffset + realSize.height;
+    });
+
+  updateGroupRect(gState.tempGroupBlock);
+};
+
 export default {
   state: gState,
   bus,
@@ -564,4 +724,12 @@ export default {
   updateGroupRect,
   getRealSize,
   updateActiveBlockZIndex,
+  alignVerticalTop,
+  alignVerticalBottom,
+  alignHorizontalLeft,
+  alignHorizontalRight,
+  alignHorizontalCenter,
+  alignVerticalCenter,
+  updateActiveBlock,
+  selectBlocks,
 };

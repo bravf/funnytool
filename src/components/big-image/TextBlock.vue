@@ -36,6 +36,7 @@ export default {
     };
     const onMousedown = (e) => {
       if (props.data.isEdit) return;
+      base.updateActiveBlock(props.data, e);
       move.start(e);
     };
     watch(() => props.data.fontSize, getSize);

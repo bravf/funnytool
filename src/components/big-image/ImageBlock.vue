@@ -23,6 +23,10 @@ export default {
         }
       },
     });
+    const onMousedown = (e) => {
+      base.updateActiveBlock(props.data, e);
+      move.start(e);
+    };
     const selectFile = (e) => {
       const file = e.target.files[0];
       base.getImagePropsByFile(file).then((data) => {
@@ -40,13 +44,14 @@ export default {
       move,
       selectFile,
       input,
+      onMousedown,
     };
   },
 };
 </script>
 
 <template lang="pug">
-.block.image-block(@mousedown="move.start")
+.block.image-block(@mousedown="onMousedown")
   img(:src="data.image", draggable="false", v-if="data.image")
   .empty(v-else)
     input(type="file", accept="image/*", @change="selectFile", ref="input")

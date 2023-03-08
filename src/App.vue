@@ -1,9 +1,9 @@
 <script setup>
-import BigImage from "./components/big-image/BigImage.vue";
+import ImageAndText from "./components/image-and-text/main.vue";
 </script>
 
 <template>
-  <BigImage />
+  <ImageAndText />
 </template>
 
 <style scoped>

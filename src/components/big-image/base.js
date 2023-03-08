@@ -2,8 +2,10 @@ import { reactive } from "vue";
 import mitt from "mitt";
 import html2canvas from "html2canvas";
 
+const devicePixelRatio = window.devicePixelRatio;
 const gState = reactive({
   activeBlock: null,
+  hoverBlock: null,
   blocks: [],
   zIndex: 100,
   guidelines: {
@@ -27,6 +29,7 @@ const gState = reactive({
     height: 0,
     blocks: [],
     type: "tempGroup",
+    scale: 1,
   },
 });
 
@@ -69,11 +72,16 @@ const baseBlock = () => ({
   left: 0,
   width: 0,
   height: 0,
+  scale: 1,
   // 临时变量
   _top: 0,
   _left: 0,
   _width: 0,
   _height: 0,
+  _scale: 0,
+  // 距离组的距离
+  _x: 0,
+  _y: 0,
   zIndex: gState.zIndex++,
 });
 const createTextBlock = (data = {}) => {
@@ -98,8 +106,9 @@ const createImageBlock = (data = {}) => {
     ...baseBlock(),
     type: "image",
     image: "",
-    width: 100,
-    height: 100,
+    width: 200,
+    height: 200,
+    scale: 1 / devicePixelRatio,
     ...data,
   };
   gState.activeBlock = block;
@@ -135,6 +144,8 @@ const move = (_state, callback = {}) => {
 
   // 参考线
   let lines;
+  // 当前state实际size
+  let size;
 
   const start = (e) => {
     // 判断临时组，如果是临时组的成员，则state升级为临时组
@@ -147,22 +158,16 @@ const move = (_state, callback = {}) => {
     } else {
       state = backupState;
     }
+    getBlocks(state).forEach((block) => {
+      block._left = block.left;
+      block._top = block.top;
+    });
 
-    state._left = state.left;
-    state._top = state.top;
-
-    // 如果是 group
-    if (state.blocks) {
-      state.blocks.forEach((block) => {
-        block._left = block.left;
-        block._top = block.top;
-      });
-    }
-
+    size = getRealSize(state);
     startState.left = e.clientX;
     startState.top = e.clientY;
     startState.isMoving = true;
-    lines = getGuidelines([state, ...(state.blocks || [])]);
+    lines = getGuidelines(getBlocks(state));
     if (callback.onStart) {
       callback.onStart();
     }
@@ -184,16 +189,16 @@ const move = (_state, callback = {}) => {
         return;
       }
       // 中线
-      const middle = adsorb(state._left + diffx + state.width / 2, lines.left);
+      const middle = adsorb(state._left + diffx + size.width / 2, lines.left);
       if (middle.is) {
-        state.left = middle.line - state.width / 2;
+        state.left = middle.line - size.width / 2;
         gState.guidelines.left.push(middle.line);
         return;
       }
       // 右线
-      const right = adsorb(start._left + diffx + state.width, lines.left);
+      const right = adsorb(state._left + diffx + size.width, lines.left);
       if (right.is) {
-        state.left = right.line - state.width;
+        state.left = right.line - size.width;
         gState.guidelines.left.push(right.line);
         return;
       }
@@ -210,16 +215,16 @@ const move = (_state, callback = {}) => {
         return;
       }
       // 中线
-      const middle = adsorb(state._top + diffy + state.height / 2, lines.top);
+      const middle = adsorb(state._top + diffy + size.height / 2, lines.top);
       if (middle.is) {
-        state.top = middle.line - state.height / 2;
+        state.top = middle.line - size.height / 2;
         gState.guidelines.top.push(middle.line);
         return;
       }
       // 下线
-      const bottom = adsorb(state._top + diffy + state.height, lines.top);
+      const bottom = adsorb(state._top + diffy + size.height, lines.top);
       if (bottom.is) {
-        state.top = bottom.line - state.height;
+        state.top = bottom.line - size.height;
         gState.guidelines.top.push(bottom.line);
         return;
       }
@@ -229,7 +234,8 @@ const move = (_state, callback = {}) => {
     if (state.blocks) {
       const realDiffx = state.left - state._left;
       const realDiffy = state.top - state._top;
-      state.blocks.forEach((block) => {
+      getBlocks(state).forEach((block) => {
+        if (block == state) return;
         block.left = block._left + realDiffx;
         block.top = block._top + realDiffy;
       });
@@ -255,29 +261,39 @@ const move = (_state, callback = {}) => {
 };
 
 // 缩放 block
-const resize = (state, callback = {}) => {
+const resize = (callback = {}) => {
+  let state;
   const startState = {
     left: 0,
     isMoving: false,
   };
-  const setWidth = (width) => {
-    state.width = width;
-    state.height = parseInt((state._height / state._width) * width);
+  const setByWidth = (width) => {
+    state.scale = width / state.width;
   };
-  const setHeight = (height) => {
-    state.height = height;
-    state.width = parseInt((state._width / state._height) * height);
+  const setByHeight = (height) => {
+    state.scale = height / state.height;
   };
 
   // 参考线
   let lines;
 
   const start = (e) => {
-    state._width = state.width;
-    state._height = state.height;
+    state = gState.hoverBlock || gState.activeBlock;
+
+    getBlocks(state).forEach((block) => {
+      const size = getRealSize(block);
+      block._width = size.width;
+      block._height = size.height;
+      block._left = block.left;
+      block._top = block.top;
+      block._scale = block.scale;
+      block._x = block.left - state.left;
+      block._y = block.top - state.top;
+    });
+
     startState.left = e.clientX;
     startState.isMoving = true;
-    lines = getGuidelines([state]);
+    lines = getGuidelines(getBlocks(state));
     if (callback.onStart) {
       callback.onStart();
     }
@@ -293,7 +309,7 @@ const resize = (state, callback = {}) => {
       // 右线
       const right = adsorb(state.left + state._width + diffx, lines.left);
       if (right.is) {
-        setWidth(right.line - state.left);
+        setByWidth(right.line - state.left);
         gState.guidelines.left.push(right.line);
         return;
       }
@@ -303,31 +319,41 @@ const resize = (state, callback = {}) => {
         lines.left
       );
       if (middle.is) {
-        setWidth((middle.line - state.left) * 2);
+        setByWidth((middle.line - state.left) * 2);
         gState.guidelines.left.push(middle.line);
         return;
       }
 
-      setWidth(right.line - state.left);
+      setByWidth(right.line - state.left);
 
       (() => {
         // top吸附
         // 下线
-        const bottom = adsorb(state.top + state.height, lines.top);
+        const height = state.height * state.scale;
+        const bottom = adsorb(state.top + height, lines.top);
         if (bottom.is) {
-          setHeight(bottom.line - state.top);
+          setByHeight(bottom.line - state.top);
           gState.guidelines.top.push(bottom.line);
           return;
         }
         // 中线
-        const middle = adsorb(state.top + state.height / 2, lines.top);
+        const middle = adsorb(state.top + height / 2, lines.top);
         if (middle.is) {
-          setHeight((middle.line - state.top) * 2);
+          setByHeight((middle.line - state.top) * 2);
           gState.guidelines.top.push(middle.line);
           return;
         }
       })();
     })();
+
+    const diffScale = state.scale - state._scale;
+    getBlocks(state).forEach((block) => {
+      if (state === block) return;
+      block.scale = block._scale * (1 + diffScale);
+      block.left = state.left + block._x * (1 + diffScale);
+      block.top = state.top + block._y * (1 + diffScale);
+    });
+
     if (callback.onMove) {
       callback.onMove();
     }
@@ -353,12 +379,13 @@ const getGuidelines = (except = []) => {
   const ySet = new Set();
   gState.blocks.forEach((block) => {
     if (except.includes(block)) return;
+    const size = getRealSize(block);
     xSet.add(block.left);
-    xSet.add(block.left + block.width / 2);
-    xSet.add(block.left + block.width);
+    xSet.add(block.left + size.width / 2);
+    xSet.add(block.left + size.width);
     ySet.add(block.top);
-    ySet.add(block.top + block.height / 2);
-    ySet.add(block.top + block.height);
+    ySet.add(block.top + size.height / 2);
+    ySet.add(block.top + size.height);
   });
   return {
     left: Array.from(xSet),
@@ -406,7 +433,6 @@ const createImage = (data, callback) => {
 };
 
 // 生成大图
-const devicePixelRatio = window.devicePixelRatio;
 const createBigImage = () => {
   gState.activeBlock = null;
   const offset = 0;
@@ -476,16 +502,46 @@ const updateGroupRect = (group) => {
   let maxTop = 0;
 
   group.blocks.forEach((block) => {
+    const size = getRealSize(block);
     minLeft = Math.min(minLeft, block.left);
-    maxLeft = Math.max(maxLeft, block.left + block.width);
+    maxLeft = Math.max(maxLeft, block.left + size.width);
     minTop = Math.min(minTop, block.top);
-    maxTop = Math.max(maxTop, block.top + block.height);
+    maxTop = Math.max(maxTop, block.top + size.height);
   });
 
   group.left = minLeft;
   group.top = minTop;
   group.width = maxLeft - minLeft;
   group.height = maxTop - minTop;
+};
+
+// 根据scale得到真实size
+const getRealSize = (block) => {
+  return {
+    width: block.width * block.scale || 0,
+    height: block.height * block.scale || 0,
+  };
+};
+
+// 得到所有包含的block
+const getBlocks = (block) => {
+  if (!["tempGroup", "group"].includes(block.type)) return [block];
+  if (block.type === "group") return [block, ...block.blocks];
+  if (block.type === "tempGroup") {
+    let blocks = [block];
+    block.blocks.forEach((_block) => {
+      blocks = [...blocks, ...getBlocks(_block)];
+    });
+    return blocks;
+  }
+};
+
+// 升级 activeBlock zindex
+const updateActiveBlockZIndex = () => {
+  if (!gState.activeBlock) return;
+  getBlocks(gState.activeBlock).forEach((block) => {
+    block.zIndex = gState.zIndex++;
+  });
 };
 
 export default {
@@ -506,4 +562,6 @@ export default {
   insertContenteditable,
   arrayRemoveItem,
   updateGroupRect,
+  getRealSize,
+  updateActiveBlockZIndex,
 };

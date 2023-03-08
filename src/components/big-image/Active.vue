@@ -1,18 +1,8 @@
 <script>
 import base from "./base";
 export default {
-  props: {
-    data: {
-      type: Object,
-      default: () => ({}),
-    },
-  },
-  setup(props) {
-    const resize = base.resize(props.data, {
-      onStart: () => {
-        base.state.activeBlock = props.data;
-      },
-    });
+  setup() {
+    const resize = base.resize();
     return {
       base,
       resize,
@@ -21,24 +11,15 @@ export default {
 };
 </script>
 <template lang="pug">
-.active(
-  :style="{ display: base.state.activeBlock === data ? 'block' : 'none' }"
-)
-  .resize.resize-left-bottom(
-    @mousedown.stop="resize.start",
-    v-if="data.type === 'image'"
-  )
+.active
+  .resize.resize-left-bottom(@mousedown.stop="resize.start")
 </template>
 <style lang="scss" scoped>
 .active {
-  display: none;
   position: absolute;
-  top: 1px;
-  bottom: 1px;
-  right: 1px;
-  left: 1px;
   pointer-events: none;
   outline: 1px solid #5bbe6a;
+  z-index: 10000;
 
   .resize {
     position: absolute;

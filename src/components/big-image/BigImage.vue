@@ -26,6 +26,7 @@ const onMousedown = (block, e) => {
   if (isShift && base.state.activeBlock && block !== base.state.activeBlock) {
     // 建立新的临时组
     if (base.state.activeBlock.type !== "tempGroup") {
+      base.state.tempGroupBlock.scale = 1;
       base.state.tempGroupBlock.blocks = [base.state.activeBlock, block];
     } else {
       if (base.state.tempGroupBlock.blocks.includes(block)) {
@@ -53,8 +54,7 @@ const onMousedown = (block, e) => {
       base.state.activeBlock = block;
     }
   }
-
-  base.state.activeBlock.zIndex = base.state.zIndex++;
+  base.updateActiveBlockZIndex();
 };
 const handleDataItem = (item) => {
   if (item.kind === "string" && item.type === "text/plain") {
@@ -96,6 +96,17 @@ window.addEventListener("keydown", (e) => {
     base.deleteActiveBlock();
   }
 });
+
+const inTempGroup = (block) => {
+  if (
+    base.state.activeBlock &&
+    base.state.activeBlock.type === "tempGroup" &&
+    base.state.tempGroupBlock.blocks.includes(block)
+  ) {
+    return true;
+  }
+  return false;
+};
 </script>
 
 <template lang="pug">
@@ -108,29 +119,32 @@ window.addEventListener("keydown", (e) => {
   )
     .block-box(
       v-for="block in base.state.blocks",
-      @mousedown="onMousedown(block, $event)"
+      @mousedown="onMousedown(block, $event)",
+      :class="{ 'block-active': block === base.state.activeBlock, 'in-temp-group': inTempGroup(block) }"
     )
       TextBlock(
         v-if="block.type === 'text'",
         :data="block",
         :key="block.id",
-        :style="{ top: block.top + 'px', left: block.left + 'px', 'z-index': block.zIndex, 'font-size': block.fontSize + 'px', color: block.color, 'font-weight': block.fontWeight, 'font-style': block.fontStyle, 'text-decoration': block.textDecoration }"
+        :style="{ top: block.top + 'px', left: block.left + 'px', 'z-index': block.zIndex, 'font-size': block.fontSize + 'px', color: block.color, 'font-weight': block.fontWeight, 'font-style': block.fontStyle, 'text-decoration': block.textDecoration, transform: 'scale(' + block.scale + ')' }"
       )
-        Active(:data="block")
+        .block-hover
       ImageBlock(
         v-if="block.type === 'image'",
         :data="block",
         :key="block.id",
-        :style="{ top: block.top + 'px', left: block.left + 'px', width: block.width + 'px', height: block.height + 'px', 'z-index': block.zIndex }"
+        :style="{ top: block.top + 'px', left: block.left + 'px', width: block.width + 'px', height: block.height + 'px', 'z-index': block.zIndex, transform: 'scale(' + block.scale + ')' }"
       )
-        Active(:data="block")
-
+        .block-hover
     tempGroupBlock(
       v-if="base.state.activeBlock === base.state.tempGroupBlock",
       :style="{ top: base.state.tempGroupBlock.top + 'px', left: base.state.tempGroupBlock.left + 'px', width: base.state.tempGroupBlock.width + 'px', height: base.state.tempGroupBlock.height + 'px', 'z-index': base.state.tempGroupBlock.zIndex }"
     )
-      Active(:data="base.state.tempGroupBlock")
 
+  Active(
+    v-if="base.state.activeBlock",
+    :style="{ top: base.state.activeBlock.top + 'px', left: base.state.activeBlock.left + 'px', width: parseInt(base.state.activeBlock.width * base.state.activeBlock.scale) + 'px', height: parseInt(base.state.activeBlock.height * base.state.activeBlock.scale) + 'px' }"
+  )
   LeftBar
   SettingBar
   Guideline(:data="base.state.guidelines")
@@ -166,10 +180,30 @@ window.addEventListener("keydown", (e) => {
   .block {
     position: absolute;
     user-select: none;
+    transform-origin: top left;
+    .block-hover {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      background: rgb(91, 190, 106, 0.1);
+    }
     &:hover {
-      .active {
-        display: block !important;
+      .block-hover {
+        display: block;
       }
+    }
+  }
+  .block-active {
+    :deep(.block-hover) {
+      display: none !important;
+    }
+  }
+  .in-temp-group {
+    :deep(.block-hover) {
+      display: block;
     }
   }
   .temp-group-block {

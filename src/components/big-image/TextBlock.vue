@@ -16,12 +16,15 @@ export default {
     const getSize = () => {
       const f = () => {
         const rect = input.value.getBoundingClientRect();
-        props.data.width = parseInt(rect.width);
-        props.data.height = parseInt(rect.height);
+        props.data.width = rect.width / props.data.scale;
+        props.data.height = rect.height / props.data.scale;
       };
       setTimeout(f);
     };
     const onDblclick = () => {
+      base.state.activeBlock = props.data;
+      base.updateActiveBlockZIndex();
+
       props.data.isEdit = true;
       setTimeout(() => {
         input.value.focus();
@@ -83,6 +86,7 @@ export default {
     ref="input",
     placeholder="键入文字",
     spellcheck="false",
+    @input="getSize",
     @blur="onBlur",
     @keydown.stop="() => {}",
     @paste.prevent="onPaste",
@@ -96,6 +100,7 @@ export default {
   outline: none;
   height: 100%;
   word-break: break-all;
+  background: #fff;
   &:empty::before {
     content: attr(placeholder);
     color: #999;

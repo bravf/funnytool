@@ -62,6 +62,9 @@ const gState = reactive({
     fontStyle: "normal",
     textDecoration: "normal",
   },
+
+  // 缩放百分比
+  scalePercent: 0.2,
 });
 
 // 获取鼠标位置
@@ -135,7 +138,7 @@ const createImageBlock = (data = {}) => {
     image: "",
     width: 200,
     height: 200,
-    scale: 1 / devicePixelRatio,
+    scale: 1,
     ...data,
   };
   gState.activeBlock = block;
@@ -666,7 +669,7 @@ const alignVerticalBottom = () => {
 
   updateGroupRect(gState.tempGroupBlock);
 };
-const alignHorizontalCenter = () => {
+const alignVerticalCenter = () => {
   const lines = getGuidelines([], gState.tempGroupBlock.blocks);
   let left = Math.min(...lines.left);
   let bottom = Math.max(...lines.top);
@@ -718,7 +721,7 @@ const alignHorizontalRight = () => {
 
   updateGroupRect(gState.tempGroupBlock);
 };
-const alignVerticalCenter = () => {
+const alignHorizontalCenter = () => {
   const lines = getGuidelines([], gState.tempGroupBlock.blocks);
   let right = Math.max(...lines.left);
   let top = Math.min(...lines.top);
@@ -734,6 +737,36 @@ const alignVerticalCenter = () => {
     });
 
   updateGroupRect(gState.tempGroupBlock);
+};
+
+// 缩放设置
+const scaleInOut = (type = "in") => {
+  let scale = 1;
+  if (type === "in") {
+    scale = 1 + gState.scalePercent;
+  } else {
+    scale = 1 - gState.scalePercent;
+  }
+
+  if (gState.activeBlock.type === "tempGroup") {
+    getBlocks(gState.activeBlock).forEach((block) => {
+      if (block === gState.activeBlock) return;
+      block.scale *= scale;
+
+      block.left =
+        gState.activeBlock.left +
+        (block.left - gState.activeBlock.left) * scale;
+
+      block.top =
+        gState.activeBlock.top + (block.top - gState.activeBlock.top) * scale;
+    });
+    updateGroupRect(gState.activeBlock);
+  } else {
+    gState.activeBlock.scale *= scale;
+    if (gState.activeBlock.type === "text") {
+      gState.currentTextStyle.scale = gState.activeBlock.scale;
+    }
+  }
 };
 
 export default {
@@ -764,4 +797,5 @@ export default {
   alignVerticalCenter,
   updateActiveBlock,
   selectBlocks,
+  scaleInOut,
 };

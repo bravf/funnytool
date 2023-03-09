@@ -81,12 +81,14 @@ window.addEventListener("keydown", (e) => {
   // 删除block
   if (key === "Backspace") {
     base.deleteActiveBlock();
+    e.preventDefault();
     return;
   }
 
   // 全选block
   if (key === "a" && (e.metaKey || e.ctrlKey)) {
     base.selectBlocks(base.state.blocks);
+    e.preventDefault();
     return;
   }
 });

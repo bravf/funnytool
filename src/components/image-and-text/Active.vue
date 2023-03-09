@@ -2,7 +2,13 @@
 import base from "./base";
 export default {
   setup() {
-    const resize = base.resize();
+    const resize = base.resize({
+      onStop: () => {
+        if (base.state.activeBlock.type === "text") {
+          base.state.currentTextStyle.scale = base.state.activeBlock.scale;
+        }
+      },
+    });
     return {
       base,
       resize,

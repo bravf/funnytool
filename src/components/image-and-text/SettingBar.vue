@@ -21,24 +21,26 @@ const colorList = [
   "#6765e6",
 ];
 const textBoldClick = () => {
-  base.state.activeBlock.fontWeight =
+  base.state.currentTextStyle.fontWeight = base.state.activeBlock.fontWeight =
     base.state.activeBlock.fontWeight === "normal" ? "bold" : "normal";
 };
 const textItalicClick = () => {
-  base.state.activeBlock.fontStyle =
+  base.state.currentTextStyle.fontStyle = base.state.activeBlock.fontStyle =
     base.state.activeBlock.fontStyle === "normal" ? "italic" : "normal";
 };
 const textUnderlineClick = () => {
-  base.state.activeBlock.textDecoration =
-    base.state.activeBlock.textDecoration !== "underline"
-      ? "underline"
-      : "none";
+  base.state.currentTextStyle.textDecoration =
+    base.state.activeBlock.textDecoration =
+      base.state.activeBlock.textDecoration !== "underline"
+        ? "underline"
+        : "none";
 };
 const textStrikethroughClick = () => {
-  base.state.activeBlock.textDecoration =
-    base.state.activeBlock.textDecoration !== "line-through"
-      ? "line-through"
-      : "none";
+  base.state.currentTextStyle.textDecoration =
+    base.state.activeBlock.textDecoration =
+      base.state.activeBlock.textDecoration !== "line-through"
+        ? "line-through"
+        : "none";
 };
 </script>
 <template lang="pug">
@@ -52,7 +54,7 @@ const textStrikethroughClick = () => {
         v-for="color in colorList",
         :key="color",
         :style="{ background: color }",
-        @click="() => (base.state.activeBlock.color = color)"
+        @click="() => (base.state.currentTextStyle.color = base.state.activeBlock.color = color)"
       )
     .format-list.list
       Icon(@click="textBoldClick")

@@ -10,9 +10,7 @@ export default {
   },
   setup(props) {
     const input = ref();
-    const move = base.move(props.data, {
-      onStop: () => {},
-    });
+    const move = base.move(props.data);
     const getSize = () => {
       const f = () => {
         const rect = input.value.getBoundingClientRect();
@@ -85,7 +83,6 @@ export default {
   .block-content(
     :contenteditable="data.isEdit",
     ref="input",
-    placeholder="键入文字",
     spellcheck="false",
     @input="getSize",
     @blur="onBlur",

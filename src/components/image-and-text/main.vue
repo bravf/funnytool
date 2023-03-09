@@ -120,7 +120,7 @@ const inTempGroup = (block) => {
         v-if="block.type === 'text'",
         :data="block",
         :key="block.id",
-        :style="{ top: block.top + 'px', left: block.left + 'px', 'z-index': block.zIndex, 'font-size': block.fontSize + 'px', color: block.color, 'font-weight': block.fontWeight, 'font-style': block.fontStyle, 'text-decoration': block.textDecoration, transform: 'scale(' + block.scale + ')' }"
+        :style="{ top: block.top + 'px', left: block.left + 'px', 'z-index': block.zIndex, color: block.color, 'font-weight': block.fontWeight, 'font-style': block.fontStyle, 'text-decoration': block.textDecoration, transform: 'scale(' + block.scale + ')', 'font-size': block.fontSize + 'px' }"
       )
         .block-hover
       ImageBlock(

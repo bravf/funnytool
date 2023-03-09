@@ -2,26 +2,47 @@ import { reactive } from "vue";
 import mitt from "mitt";
 import html2canvas from "html2canvas";
 
+const Defer = () => {
+  let resolve, reject, promise;
+  promise = new Promise((_resolve, _reject) => {
+    resolve = _resolve;
+    reject = _reject;
+  });
+  return {
+    resolve,
+    reject,
+    promise,
+  };
+};
+
 const devicePixelRatio = window.devicePixelRatio;
 const gState = reactive({
   activeBlock: null,
   hoverBlock: null,
   blocks: [],
   zIndex: 100,
+
+  // 辅助线
   guidelines: {
     left: [],
     top: [],
   },
+
+  // 记录当前鼠标位置，当复制粘贴时候进行定位
   mousePosition: {
     left: 0,
     top: 0,
   },
+
+  // 生成的大图
   bigImage: {
     show: false,
     image: null,
     width: "",
     height: "",
   },
+
+  // 临时组
   tempGroupBlock: {
     left: 0,
     top: 0,
@@ -30,6 +51,16 @@ const gState = reactive({
     blocks: [],
     type: "tempGroup",
     scale: 1,
+  },
+
+  // 当前文本样式
+  currentTextStyle: {
+    scale: 1,
+    color: "#000",
+    fontSize: "18",
+    fontWeight: "normal",
+    fontStyle: "normal",
+    textDecoration: "normal",
   },
 });
 
@@ -79,7 +110,7 @@ const baseBlock = () => ({
   _width: 0,
   _height: 0,
   _scale: 0,
-  // 距离组的距离
+  // 距离组的距离，当组缩放时候来计算坐标
   _x: 0,
   _y: 0,
   zIndex: gState.zIndex++,
@@ -88,12 +119,8 @@ const createTextBlock = (data = {}) => {
   const block = {
     ...baseBlock(),
     type: "text",
-    text: "",
-    fontSize: 18,
-    fontWeight: "normal",
-    fontStyle: "normal",
-    textDecoration: "normal",
-    color: "#000000",
+    text: "输入文字",
+    ...gState.currentTextStyle,
     isEdit: false,
     ...data,
   };
@@ -440,6 +467,7 @@ const createImage = (data, callback) => {
 
 // 生成大图
 const createBigImage = () => {
+  const defer = Defer();
   gState.activeBlock = null;
   const offset = 0;
   const lines = getGuidelines();
@@ -471,9 +499,11 @@ const createBigImage = () => {
         gState.bigImage.image = img.src;
         gState.bigImage.width = img.width / devicePixelRatio;
         gState.bigImage.height = img.height / devicePixelRatio;
+        defer.resolve();
       });
     });
   });
+  return defer.promise;
 };
 
 const insertContenteditable = (el, content) => {

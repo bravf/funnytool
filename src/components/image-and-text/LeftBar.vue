@@ -26,6 +26,7 @@ const create = (type, e) => {
 <style lang="scss" scoped>
 .left-bar {
   position: fixed;
+  z-index: 1999;
   top: 100px;
   left: 20px;
   padding: 10px;

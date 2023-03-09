@@ -7,8 +7,11 @@ import ImageBlock from "./ImageBlock.vue";
 import Active from "./Active.vue";
 import Guideline from "./Guideline.vue";
 import TempGroupBlock from "./TempGroupBlock.vue";
+import CircleSelect from "./CircleSelect.vue";
 import base from "./base";
 import { NButton, NModal, NAlert } from "naive-ui";
+import Cut from "@vicons/carbon/Cut";
+import { Icon } from "@vicons/utils";
 
 const isBlocks = (e) => {
   return e.target.className === "blocks";
@@ -16,8 +19,62 @@ const isBlocks = (e) => {
 const blocksOnMousedown = (e) => {
   if (isBlocks(e)) {
     base.state.activeBlock = null;
+
+    // 开始准备圈选
+    base.state.circleSelect.isStart = true;
+    const position = base.getMousePostion(e);
+    base.state.circleSelect._left = position.left;
+    base.state.circleSelect._top = position.top;
   }
 };
+// 圈选事件处理
+window.addEventListener("mousemove", (e) => {
+  if (!base.state.circleSelect.isStart) return;
+
+  const position = base.getMousePostion(e);
+  const offset = 5;
+  const width = position.left - base.state.circleSelect._left;
+  const height = position.top - base.state.circleSelect._top;
+
+  // 二次保护，用来防止误操作
+  if (Math.abs(width) > offset || Math.abs(height) > offset) {
+    base.state.circleSelect.isMoving = true;
+  }
+
+  if (!base.state.circleSelect.isMoving) return;
+
+  // 根据 width 和 height 判断方向
+  if (width > 0) {
+    base.state.circleSelect.left = base.state.circleSelect._left;
+    base.state.circleSelect.width = width;
+  } else {
+    base.state.circleSelect.left = base.state.circleSelect._left + width;
+    base.state.circleSelect.width = -width;
+  }
+
+  if (height > 0) {
+    base.state.circleSelect.top = base.state.circleSelect._top;
+    base.state.circleSelect.height = height;
+  } else {
+    base.state.circleSelect.top = base.state.circleSelect._top + height;
+    base.state.circleSelect.height = -height;
+  }
+
+  base.circleSelectBlocks();
+});
+window.addEventListener("mouseup", () => {
+  if (
+    base.state.circleSelect.isMoving &&
+    base.state.tempGroupBlock.blocks.length
+  ) {
+    base.updateGroupRect(base.state.tempGroupBlock);
+    base.state.activeBlock = base.state.tempGroupBlock;
+  }
+
+  base.state.circleSelect.isStart = false;
+  base.state.circleSelect.isMoving = false;
+});
+
 const onMousemove = (e) => {
   base.state.mousePosition = base.getMousePostion(e);
 };
@@ -94,11 +151,7 @@ window.addEventListener("keydown", (e) => {
 });
 
 const inTempGroup = (block) => {
-  if (
-    base.state.activeBlock &&
-    base.state.activeBlock.type === "tempGroup" &&
-    base.state.tempGroupBlock.blocks.includes(block)
-  ) {
+  if (base.state.tempGroupBlock.blocks.includes(block)) {
     return true;
   }
   return false;
@@ -141,6 +194,10 @@ const inTempGroup = (block) => {
     v-if="base.state.activeBlock",
     :style="{ top: base.state.activeBlock.top + 'px', left: base.state.activeBlock.left + 'px', width: parseInt(base.state.activeBlock.width * base.state.activeBlock.scale) + 'px', height: parseInt(base.state.activeBlock.height * base.state.activeBlock.scale) + 'px' }"
   )
+  CircleSelect(
+    v-if="base.state.circleSelect.isMoving",
+    :style="{ top: base.state.circleSelect.top + 'px', left: base.state.circleSelect.left + 'px', width: base.state.circleSelect.width + 'px', height: base.state.circleSelect.height + 'px' }"
+  )
   LeftBar
   SettingBar
   Guideline(:data="base.state.guidelines")
@@ -152,7 +209,12 @@ const inTempGroup = (block) => {
     size="large",
     @click="createBigImage",
     v-if="base.state.blocks.length && !base.state.bigImage.show"
-  ) 生成大图
+  )
+    | 点击生成大图
+    template(#icon)
+      Icon
+        Cut
+
   n-modal(v-model:show="base.state.bigImage.show")
     .big-image
       NAlert(type="success") 右键点击图片复制或下载
@@ -210,7 +272,7 @@ const inTempGroup = (block) => {
 }
 .screen-shot {
   position: fixed;
-  bottom: 50px;
+  top: 50px;
   left: calc(50vw - 52px);
   z-index: 10000;
 }

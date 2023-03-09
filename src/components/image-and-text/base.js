@@ -1,4 +1,4 @@
-import { reactive } from "vue";
+import { reactive, watch } from "vue";
 import mitt from "mitt";
 import html2canvas from "html2canvas";
 
@@ -65,7 +65,31 @@ const gState = reactive({
 
   // 缩放百分比
   scalePercent: 0.2,
+
+  // 鼠标圈选rect
+  circleSelect: {
+    isStart: false,
+    isMoving: false,
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    scale: 1,
+    // 临时变量
+    _left: 0,
+    _top: 0,
+  },
 });
+
+// 监听 activeBlock 设置，如果不为 tempGroupBlock，那么清空 tempGroupBlock
+watch(
+  () => gState.activeBlock,
+  () => {
+    if (gState.activeBlock !== gState.tempGroupBlock) {
+      gState.tempGroupBlock.blocks = [];
+    }
+  }
+);
 
 // 获取鼠标位置
 const getMousePostion = (e) => {
@@ -535,6 +559,7 @@ const arrayRemoveItem = (array, item) => {
 
 // 根据 group.blocks 更新 group的 rect 信息
 const updateGroupRect = (group) => {
+  if (!group.blocks.length) return;
   let minLeft = 1000000;
   let maxLeft = 0;
   let minTop = 1000000;
@@ -558,6 +583,8 @@ const updateGroupRect = (group) => {
 // 根据scale得到真实size
 const getRealSize = (block) => {
   return {
+    left: block.left,
+    top: block.top,
     width: block.width * block.scale || 0,
     height: block.height * block.scale || 0,
   };
@@ -769,6 +796,41 @@ const scaleInOut = (type = "in") => {
   }
 };
 
+// 判断两个矩形是否相交
+const checkRectOverlap = (r1, r2) => {
+  r1 = getRealSize(r1);
+  r2 = getRealSize(r2);
+  r1.right = r1.left + r1.width;
+  r1.bottom = r1.top + r1.height;
+  r2.right = r2.left + r2.width;
+  r2.bottom = r2.top + r2.height;
+  // 两个矩形是否重叠
+  // 求两个矩形外包围的长宽
+  let width = Math.abs(
+    Math.max(r1.right, r2.right) - Math.min(r1.left, r2.left)
+  );
+  let height = Math.abs(
+    Math.max(r1.bottom, r2.bottom) - Math.min(r1.top, r2.top)
+  );
+
+  // 两个矩形长宽的和
+  let rectMaxWidth = r1.width + r2.width;
+  let rectMaxHeight = r1.height + r2.height;
+
+  // 如果相交，必须满足外包围的长短必须同时小于两个矩形长宽的和
+  return width < rectMaxWidth && height < rectMaxHeight;
+};
+
+// 选中被鼠标圈中的block，添加到临时组中
+const circleSelectBlocks = () => {
+  gState.tempGroupBlock.blocks = [];
+  gState.blocks.forEach((block) => {
+    if (checkRectOverlap(block, gState.circleSelect)) {
+      gState.tempGroupBlock.blocks.push(block);
+    }
+  });
+};
+
 export default {
   state: gState,
   bus,
@@ -798,4 +860,5 @@ export default {
   updateActiveBlock,
   selectBlocks,
   scaleInOut,
+  circleSelectBlocks,
 };

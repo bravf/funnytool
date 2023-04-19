@@ -496,7 +496,7 @@ const createImage = (data, callback) => {
 const createBigImage = () => {
   const defer = Defer();
   gState.activeBlock = null;
-  const offset = 0;
+  const offset = 10;
   const lines = getGuidelines();
   const minLeft = Math.min(...lines.left) - offset;
   const maxLeft = Math.max(...lines.left) + offset;
